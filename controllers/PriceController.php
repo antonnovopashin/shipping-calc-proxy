@@ -58,7 +58,7 @@ class PriceController extends Controller
             ],
         ];
 
-        $response = ExternalDataFetcher::requestDataFromProvider('price', 'get', $params);
+        $response = ExternalDataFetcher::requestPriceDataFromProvider('price', 'get', $params);
 
         $basePriceResults = $response['response']['basePrice'];
         $priceResults = $response['response']['price'];

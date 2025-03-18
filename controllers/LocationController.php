@@ -2,10 +2,12 @@
 
 namespace app\controllers;
 
+use app\Service\EntryDto;
 use app\Service\ExternalDataFetcher;
 use app\Service\FindLocationPhoneDto;
 use app\Service\FindResultDto;
 use app\Service\FindResultLocationDTO;
+use app\Service\ProviderLocationItemDto;
 use app\Service\ResponseRenderer;
 use Yii;
 use yii\web\Controller;
@@ -25,8 +27,10 @@ class LocationController extends Controller
             'limit' => 80,
         ];
 
-        $response = ExternalDataFetcher::requestDataFromProvider('location', 'get', $params);
-        $searchResults = $response['response']['data'];
+        $locationGetEntryDto = new EntryDto('location', 'get', $params);
+        $providerResponse = ExternalDataFetcher::requestDataFromProvider($locationGetEntryDto);
+        $searchResults = $providerResponse->getItems();
+
         $searchResultDtoCollection = [];
 
         foreach ($searchResults as $searchResultItem) {
@@ -47,13 +51,10 @@ class LocationController extends Controller
             "search" => $rawBodyDecoded['search'],
         ];
 
-        $response = ExternalDataFetcher::requestDataFromProvider(
-            'location',
-            'get',
-            $params
-        );
+        $locationSearchEntryDto = new EntryDto('location', 'get', $params);
+        $providerResponse = ExternalDataFetcher::requestDataFromProvider($locationSearchEntryDto);
 
-        $searchResults = $response['response']['data'];
+        $searchResults = $providerResponse->getItems();
         $searchResultDtoCollection = [];
 
         foreach ($searchResults as $searchResultItem) {
@@ -74,36 +75,35 @@ class LocationController extends Controller
             "id" => $rawBodyDecoded['guid'],
         ];
 
-        $response = ExternalDataFetcher::requestDataFromProvider(
-            'location',
-            'get',
-            $params
-        );
+        $locationFindEntryDto = new EntryDto('location', 'get', $params);
 
-        $searchResults = $response['response']['data'][0];
-        $findResultLocationDTO = $this->makeLocationDto($searchResults);
+        $providerResponse = ExternalDataFetcher::requestDataFromProvider($locationFindEntryDto);
+
+        $items = $providerResponse->getItems();
+        $searchResultDto = $items[0];
+        $findResultLocationDTO = $this->makeLocationDto($searchResultDto);
         $findResultPhoneDTO = $this->makeLocationPhonesDto([]);
         $findResultDto = new FindResultDto($findResultLocationDTO, $findResultPhoneDTO);
 
         return ResponseRenderer::makeFindLocationResponse($findResultDto);
     }
 
-    public function makeLocationDto($searchResultItem): FindResultLocationDTO
+    public function makeLocationDto(ProviderLocationItemDto $searchResultItem): FindResultLocationDTO
     {
         $hasTerminal = true;
 
-        if (null !== $searchResultItem['default_terminal']) {
-            if (array_key_exists('location_guid', $searchResultItem['default_terminal'])) {
+        if (null !== $searchResultItem->getDefaultTerminal()) {
+            if (null !== $searchResultItem->getDefaultTerminal()->getLocationGuid()) {
                 $hasTerminal = false;
             }
         }
 
         return FindResultLocationDTO::fromArray([
-            'guid' => $searchResultItem['guid'],
-            'name' => $searchResultItem['name'],
-            'country' => $searchResultItem['country'],
-            'type' => $searchResultItem['type'],
-            'coordinates' => explode(',', $searchResultItem['coordinates']),
+            'guid' => $searchResultItem->getGuid(),
+            'name' => $searchResultItem->getName(),
+            'country' => $searchResultItem->getCountry(),
+            'type' => $searchResultItem->getType(),
+            'coordinates' => explode(',', $searchResultItem->getCoordinates()),
             'hasTerminal' => $hasTerminal,
         ]);
     }

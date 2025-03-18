@@ -20,10 +20,6 @@ class LocationController extends Controller
 
     public function actionGet()
     {
-        $request = Yii::$app->request;
-        $rawBody = $request->getRawBody();
-        $rawBodyDecoded = json_decode($rawBody, true);
-
         $params = [
             'offset' => 0,
             'limit' => 80,
@@ -34,29 +30,11 @@ class LocationController extends Controller
         $searchResultDtoCollection = [];
 
         foreach ($searchResults as $searchResultItem) {
-            $searchResultDto = [];
-            $hasTerminal = true;
-
-            if (null !== $searchResultItem['default_terminal']) {
-                if (array_key_exists('location_guid', $searchResultItem['default_terminal'])) {
-                    $hasTerminal = false;
-                }
-            }
-
-            $searchResultDto['guid'] = $searchResultItem['guid'];
-            $searchResultDto['name'] = $searchResultItem['name'];
-            $searchResultDto['type'] = $searchResultItem['type'];
-            $searchResultDto['coordinates'] = explode(',', $searchResultItem['coordinates']);
-            $searchResultDto['country'] = $searchResultItem['country'];
-            $searchResultDto['hasTerminal'] = $hasTerminal;
+            $searchResultDto = $this->makeLocationDto($searchResultItem);
             $searchResultDtoCollection[] = $searchResultDto;
         }
 
-        $response = Yii::$app->response;
-        $response->format = \yii\web\Response::FORMAT_JSON;
-        $response->data = $searchResultDtoCollection;
-
-        return $response;
+        return ResponseRenderer::makeSearchLocationResponse($searchResultDtoCollection);
     }
 
     public function actionSearch()

@@ -79,7 +79,7 @@ class LocationController extends Controller
         $searchResultDtoCollection = [];
 
         foreach ($searchResults as $searchResultItem) {
-            $searchResultDto = $this->makeLocationDtoDto($searchResultItem);
+            $searchResultDto = $this->makeLocationDto($searchResultItem);
             $searchResultDtoCollection[] = $searchResultDto;
         }
 
@@ -103,34 +103,14 @@ class LocationController extends Controller
         );
 
         $searchResults = $response['response']['data'][0];
-        $findResultLocationDTO = $this->makeLocationDtoDto($searchResults);
+        $findResultLocationDTO = $this->makeLocationDto($searchResults);
         $findResultPhoneDTO = $this->makeLocationPhonesDto([]);
         $findResultDto = new FindResultDto($findResultLocationDTO, $findResultPhoneDTO);
 
         return ResponseRenderer::makeFindLocationResponse($findResultDto);
     }
 
-    public function makeLocationDto($searchResultItem)
-    {
-        $hasTerminal = true;
-
-        if (null !== $searchResultItem['default_terminal']) {
-            if (array_key_exists('location_guid', $searchResultItem['default_terminal'])) {
-                $hasTerminal = false;
-            }
-        }
-
-        $searchResultDto = [];
-        $searchResultDto['guid'] = $searchResultItem['guid'];
-        $searchResultDto['name'] = $searchResultItem['name'];
-        $searchResultDto['country'] = $searchResultItem['country'];
-        $searchResultDto['type'] = $searchResultItem['type'];
-        $searchResultDto['coordinates'] = explode(',', $searchResultItem['coordinates']);
-        $searchResultDto['hasTerminal'] = $hasTerminal;
-        return $searchResultDto;
-    }
-
-    public function makeLocationDtoDto($searchResultItem)
+    public function makeLocationDto($searchResultItem): FindResultLocationDTO
     {
         $hasTerminal = true;
 

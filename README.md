@@ -6,16 +6,20 @@
     <br>
 </p>
 
-    //todo занести в докер компоузе установку пакетов из композера 
-        //todo занести в докер компоузе установку расширений php docker-php-ext-install pdo pdo_mysql
-        //todo занести в докер компоузе накатку миграций
-        //todo сделать readme
+        //todo занести в докер компоузе установку пакетов из композера 
         //todo сделать валидацию инпута
         //todo сделать валидацию данных из провайдера
         //todo сделать swagger
         //todo отрефакторить в ddd
         //todo написать тесты
 
+INSTALLATION
+------------
+      построить образы docker-compose build
+      запустить контейнеры docker-compose up -d
+      зайти в контейнер  docker exec -it vozovoz-php-1 sh
+      перейти в папку проекта app/public/basic
+      накатить миграции командой php yii migrate-up
 Yii 2 Basic Project Template is a skeleton [Yii 2](https://www.yiiframework.com/) application best for
 rapidly creating small projects.
 

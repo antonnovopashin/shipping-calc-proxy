@@ -3,6 +3,10 @@
 namespace app\controllers;
 
 use app\Service\ExternalDataFetcher;
+use app\Service\FindLocationPhoneDto;
+use app\Service\FindResultDto;
+use app\Service\FindResultLocationDTO;
+use app\Service\ResponseRenderer;
 use Yii;
 use yii\web\Controller;
 
@@ -16,6 +20,10 @@ class LocationController extends Controller
 
     public function actionGet()
     {
+        $request = Yii::$app->request;
+        $rawBody = $request->getRawBody();
+        $rawBodyDecoded = json_decode($rawBody, true);
+
         $params = [
             'offset' => 0,
             'limit' => 80,
@@ -49,15 +57,6 @@ class LocationController extends Controller
         $response->data = $searchResultDtoCollection;
 
         return $response;
-
-        //todo занести в докер компоузе установку пакетов из композера
-        //todo занести в докер компоузе установку расширений php docker-php-ext-install pdo pdo_mysql
-        //todo занести в докер компоузе накатку миграций
-        //todo сделать readme
-        //todo сделать валидацию инпута
-        //todo сделать swagger
-        //todo отрефакторить в ddd
-        //todo написать тесты
     }
 
     public function actionSearch()
@@ -80,20 +79,79 @@ class LocationController extends Controller
         $searchResultDtoCollection = [];
 
         foreach ($searchResults as $searchResultItem) {
-            $searchResultDto = [];
-            $searchResultDto['guid'] = $searchResultItem['guid'];
-            $searchResultDto['name'] = $searchResultItem['name'];
-            $searchResultDto['country'] = $searchResultItem['country'];
-            $searchResultDto['type'] = $searchResultItem['type'];
-            $searchResultDto['coordinates'] = explode(',', $searchResultItem['coordinates']);
-            $searchResultDto['hasTerminal'] = array_key_exists('location_guid', $searchResultItem['default_terminal']);
+            $searchResultDto = $this->makeLocationDtoDto($searchResultItem);
             $searchResultDtoCollection[] = $searchResultDto;
         }
 
-        $response = Yii::$app->response;
-        $response->format = \yii\web\Response::FORMAT_JSON;
-        $response->data = $searchResultDtoCollection;
+        return ResponseRenderer::makeSearchLocationResponse($searchResultDtoCollection);
+    }
 
-        return $response;
+    public function actionFind()
+    {
+        $request = Yii::$app->request;
+        $rawBody = $request->getRawBody();
+        $rawBodyDecoded = json_decode($rawBody, true);
+
+        $params = [
+            "id" => $rawBodyDecoded['guid'],
+        ];
+
+        $response = ExternalDataFetcher::requestDataFromProvider(
+            'location',
+            'get',
+            $params
+        );
+
+        $searchResults = $response['response']['data'][0];
+        $findResultLocationDTO = $this->makeLocationDtoDto($searchResults);
+        $findResultPhoneDTO = $this->makeLocationPhonesDto([]);
+        $findResultDto = new FindResultDto($findResultLocationDTO, $findResultPhoneDTO);
+
+        return ResponseRenderer::makeFindLocationResponse($findResultDto);
+    }
+
+    public function makeLocationDto($searchResultItem)
+    {
+        $hasTerminal = true;
+
+        if (null !== $searchResultItem['default_terminal']) {
+            if (array_key_exists('location_guid', $searchResultItem['default_terminal'])) {
+                $hasTerminal = false;
+            }
+        }
+
+        $searchResultDto = [];
+        $searchResultDto['guid'] = $searchResultItem['guid'];
+        $searchResultDto['name'] = $searchResultItem['name'];
+        $searchResultDto['country'] = $searchResultItem['country'];
+        $searchResultDto['type'] = $searchResultItem['type'];
+        $searchResultDto['coordinates'] = explode(',', $searchResultItem['coordinates']);
+        $searchResultDto['hasTerminal'] = $hasTerminal;
+        return $searchResultDto;
+    }
+
+    public function makeLocationDtoDto($searchResultItem)
+    {
+        $hasTerminal = true;
+
+        if (null !== $searchResultItem['default_terminal']) {
+            if (array_key_exists('location_guid', $searchResultItem['default_terminal'])) {
+                $hasTerminal = false;
+            }
+        }
+
+        return FindResultLocationDTO::fromArray([
+            'guid' => $searchResultItem['guid'],
+            'name' => $searchResultItem['name'],
+            'country' => $searchResultItem['country'],
+            'type' => $searchResultItem['type'],
+            'coordinates' => explode(',', $searchResultItem['coordinates']),
+            'hasTerminal' => $hasTerminal,
+        ]);
+    }
+
+    private function makeLocationPhonesDto(array $array)
+    {
+        return FindLocationPhoneDto::fromArray($array);
     }
 }

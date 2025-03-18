@@ -20,6 +20,7 @@ INSTALLATION
       зайти в контейнер  docker exec -it vozovoz-php-1 sh
       перейти в папку проекта app/public/basic
       накатить миграции командой php yii migrate-up
+      сделать копию .env.dist в .env и заполнить значениями
 Yii 2 Basic Project Template is a skeleton [Yii 2](https://www.yiiframework.com/) application best for
 rapidly creating small projects.
 
